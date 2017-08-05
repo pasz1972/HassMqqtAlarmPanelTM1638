@@ -1,7 +1,7 @@
 # HassMqqtAlarmPanelTM1638
 ESP8266 and TM1638 based Alarm Panel
 
-##Introduction
+## Introduction
 
 With the introduction of Home Assistant's MQTT Alarm Panel, it is very easy to create a WiFi enabled alarmpanel to arm and disarm your alarm.
 
