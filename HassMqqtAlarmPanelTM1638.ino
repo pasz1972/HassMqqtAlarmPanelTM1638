@@ -4,7 +4,7 @@
  *  
  *  Based on : https://github.com/rjbatista/tm1638-library/wiki
  *  and      : https://github.com/knolleary/pubsubclient
- *  hass     : https://home-assistant.io
+ *  hass     : https://home-assistant.io/components/alarm_control_panel.mqtt/
  *  
  *  Example configuration.yaml entry:
  

@@ -57,3 +57,4 @@ alarm_control_panel:
     state_topic: home/alarm/state
     command_topic: home/alarm/set
 ```
+Check https://home-assistant.io/components/alarm_control_panel.mqtt/ for details.
