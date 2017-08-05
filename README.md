@@ -6,7 +6,7 @@ ESP8266 and TM1638 based Alarm Panel
 With the introduction of Home Assistant's MQTT Alarm Panel, it is very easy to create a WiFi enabled alarmpanel to arm and disarm your alarm.
 Disarming the system is done by pushing S1. S2 will put the system in Arm Home mode. S3 in Arm Away.
 
-## libraries
+## Libraries
 
 ### TM1638
 The great tm1638 library can be found here and should be installed manually
@@ -41,8 +41,11 @@ When in Pending state, the LEDs will flash slow. In Triggered state, LEDs will f
 Additional topics can be used to :
 ### publish
 home/alarm/text : Set a Text to the display
+
 home/alarm/led : Set the LEDs. Use a hex value. 00 will turn every LED off. FF will turn every LED on.
+
 home/alarm/led : Set two values to display (ie. 20.180.9)
+
 ### subscribe
 home/alarm/keys : When a button is pushed, the number of the corresponding button is published
 
