@@ -35,6 +35,9 @@ Wire your panel as follows. GPIOs can be configured as needed in your configurat
 |clk  |D1,GPIO5|yellow|
 |dio  |D0,GPIO4|green|
 
+![](images/AlarmPanelESP8266.jpg)
+![](images/AlarmPanelTM1638.jpg)
+
 ## MQTT
 The default topic is set to home/alarm. The state and set parts are needed for Home Assistant. Every 60 seconds, a ALIVE message will be send to the default topic. This part can be used to add some sensors when needed.
 When in Pending state, the LEDs will flash slow. In Triggered state, LEDs will flash fast.
