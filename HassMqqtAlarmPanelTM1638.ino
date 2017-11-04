@@ -4,7 +4,7 @@
  *  
  *  Based on : https://github.com/rjbatista/tm1638-library/wiki
  *  and      : https://github.com/knolleary/pubsubclient
- *  hass     : https://home-assistant.io/components/alarm_control_panel.mqtt/
+ *  hass     : https://home-assistant.io/components/alarm_control_panel.manual_mqtt/
  *  
  *  Example configuration.yaml entry:
  
@@ -12,6 +12,13 @@ alarm_control_panel:
   - platform: manual_mqtt
     state_topic: home/alarm/state
     command_topic: home/alarm/set
+    pending_time: 30
+    armed_home:
+      pending_time: 20
+    triggered:
+      pending_time: 20
+    trigger_time: 4
+    code: 1234
     
 =====================================================================*/
 #include "userconfig.h"
@@ -20,7 +27,6 @@ alarm_control_panel:
 #include <TM1638.h>
 
 // network settings
-
 const char* ssid = mySSID;
 const char* password = myPASSWORD;
 const char* mqtt_server = myMQTTBROKER;
@@ -33,16 +39,23 @@ TM1638 module(16, 5, 4);
 
 long lastMsg = 0;
 long lastPnd = 0;
-char msg[50];
-char pin[5];
-int  value = 0;
+long lastSlp = 0;
 byte lastkey = 0;
+
 bool pndToggle = false;
+bool slpToggle = true;
 
+char msg[50];
 
-enum AlarmState { Disarmed, Disarming, ArmedHome, Arming, ArmedAway, Pending, Triggered };
+enum AlarmState { Connecting, Disarmed, Disarming, ArmedHome, Arming, ArmedAway, ArmedNight, Pending, Triggered };
 
 AlarmState state;
+
+void resetSleep()
+{
+  lastSlp = millis();
+  slpToggle = true;
+}
 
 void setup_wifi() {
   delay(10);
@@ -113,6 +126,13 @@ void callback(char* topic, byte* payload, unsigned int length) {
       state = ArmedAway;
       Serial.println("Armed away");
     }
+    else if (sp == "armed_night")
+    {
+      module.setDisplayToString("ARMNIGHT");
+      state = ArmedNight;
+      module.setLEDs(0);
+      Serial.println("Armed night");
+    }
     else if (sp == "pending")
     {
       module.setDisplayToString("PENDING ");
@@ -147,7 +167,8 @@ void callback(char* topic, byte* payload, unsigned int length) {
   if (strcmp(topic,"home/alarm/led")==0)
   { 
     module.setLEDs(hex8(payload));
-  }  
+  }
+  resetSleep();
 }
 
 /* interpret the ascii digits in[0] and in[1] as hex
@@ -206,12 +227,14 @@ void reconnect() {
 }
 
 void setup() {
+  state = Connecting;
   module.setLEDs(0);
   module.clearDisplay();
   Serial.begin(115200);
   setup_wifi();
   client.setServer(mqtt_server, mqtt_port);
   client.setCallback(callback);
+  resetSleep();
 }
 
 void loop() {
@@ -219,7 +242,7 @@ void loop() {
     reconnect();
   }
   client.loop();
-
+  
   byte keys = module.getButtons();
   if (keys != lastkey)
   {
@@ -239,17 +262,26 @@ void loop() {
       client.publish("home/alarm/set", "DISARM");
       state = Disarming;
       module.setDisplayToString("DISARM");
+      resetSleep();
       break;
     case 2:
       client.publish("home/alarm/set", "ARM_HOME");
       state = Arming;
       module.setDisplayToString("ARM HOME");
+      resetSleep();
       break;
     case 3:
       client.publish("home/alarm/set", "ARM_AWAY");
       state = Arming;
       module.setDisplayToString("ARM AWAY");
+      resetSleep();
       break;
+    case 4:
+      client.publish("home/alarm/set", "ARM_NIGHT");
+      state = Arming;
+      module.setDisplayToString("ARMNIGHT");
+      resetSleep();
+      break;      
     default:
       if (k != 0)
       {
@@ -263,17 +295,30 @@ void loop() {
 
   // send an alive signal every minute
   long now = millis();
+  
   if (now - lastMsg > 60000) {
     lastMsg = now;
-    Serial.print("I'm still alive");
+    Serial.println("I'm still alive");
     client.publish("home/alarm", "ALIVE");
   }
 
+  // dim display to preserve energy
+  if ( (state != Pending) && 
+       (state != Connecting) && 
+       (now - lastSlp > 10000) && 
+       slpToggle
+    ) {
+    slpToggle = false;
+    lastSlp = now;
+    Serial.println("Display off");
+    module.clearDisplay();
+  }
+
+  // blinking modes. Pending = slow, Triggered = fast
   if (
         ( (now - lastPnd > 1000) && (state==Pending)   ) ||
         ( (now - lastPnd >  500) && (state==Triggered) ) 
-     )   
-    {
+     ){
     lastPnd = now;
     if (pndToggle)
     {
